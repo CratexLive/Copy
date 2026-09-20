@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Streams</title>
+    <title>Live Streams Dashboard</title>
     <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
     <style>
         :root {
@@ -12,6 +12,7 @@
             --accent-color: #38bdf8;
             --text-color: #f8fafc;
             --text-secondary: #94a3b8;
+            --border-color: #334155;
         }
         body {
             margin: 0;
@@ -25,7 +26,7 @@
         header {
             padding: 1rem 2rem;
             background-color: var(--card-bg);
-            border-bottom: 1px solid #334155;
+            border-bottom: 1px solid var(--border-color);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -33,7 +34,7 @@
         h1 { margin: 0; font-size: 1.25rem; color: var(--accent-color); }
         .container {
             display: grid;
-            grid-template-columns: 350px 1fr;
+            grid-template-columns: 380px 1fr;
             flex: 1;
             overflow: hidden;
         }
@@ -42,10 +43,13 @@
         }
         .sidebar {
             background-color: var(--card-bg);
-            border-right: 1px solid #334155;
+            border-right: 1px solid var(--border-color);
             overflow-y: auto;
             max-height: calc(100vh - 65px);
             padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
         }
         .player-container {
             display: flex;
@@ -60,30 +64,54 @@
             max-width: 900px;
         }
         video { width: 100%; max-height: 70vh; }
-        .stream-item {
+        
+        .section-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+            margin-bottom: 0.25rem;
+        }
+        .card-item {
             padding: 0.75rem 1rem;
-            margin-bottom: 0.5rem;
             background: #0f172a;
-            border: 1px solid #334155;
+            border: 1px solid var(--border-color);
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.2s;
         }
-        .stream-item:hover { border-color: var(--accent-color); }
-        .stream-item.active { border-color: var(--accent-color); background: #1e3a8a; }
-        .stream-title { font-weight: 600; font-size: 0.95rem; }
-        .stream-subtitle { font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px; }
+        .card-item:hover { border-color: var(--accent-color); }
+        .card-item.active { border-color: var(--accent-color); background: #1e3a8a; }
+        .card-title { font-weight: 600; font-size: 0.95rem; }
+        .card-subtitle { font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px; }
+        
+        .nav-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--accent-color);
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            background: none;
+            border: none;
+            padding: 0;
+            margin-bottom: 0.5rem;
+        }
+        .nav-back:hover { text-decoration: underline; }
+        
         .search-box {
             width: 100%;
             padding: 0.6rem 1rem;
-            margin-bottom: 1rem;
             background: #0f172a;
-            border: 1px solid #334155;
+            border: 1px solid var(--border-color);
             border-radius: 6px;
             color: white;
             box-sizing: border-box;
         }
         .search-box:focus { outline: none; border-color: var(--accent-color); }
+        .loading { text-align: center; color: var(--text-secondary); padding: 2rem; }
     </style>
 </head>
 <body>
@@ -91,9 +119,8 @@
         <h1>Live Streams Dashboard</h1>
     </header>
     <div class="container">
-        <div class="sidebar">
-            <input type="text" class="search-box" id="search" placeholder="Search streams...">
-            <div id="stream-list">Loading feeds...</div>
+        <div class="sidebar" id="sidebar">
+            <div class="loading">Loading sources...</div>
         </div>
         <div class="player-container">
             <div class="player-wrapper">
@@ -106,73 +133,172 @@
     <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
     <script>
         const sources = [
-            "https://raw.githubusercontent.com/doctor-8trange/zyphx8/refs/heads/main/data/fancode.json",
-            "https://raw.githubusercontent.com/kajju027/Fancode-Events-Json/main/fan.json",
-            "https://raw.githubusercontent.com/kajju027/Fancode-Events-Json/refs/heads/main/fancode.json",
-            "https://raw.githubusercontent.com/drmlive/fancode-live-events/refs/heads/main/fancode.json"
+            { name: "Zyphx8 Fancode JSON", url: "https://raw.githubusercontent.com/doctor-8trange/zyphx8/refs/heads/main/data/fancode.json" },
+            { name: "Kajju027 Fan JSON", url: "https://raw.githubusercontent.com/kajju027/Fancode-Events-Json/main/fan.json" },
+            { name: "Kajju027 Fancode JSON", url: "https://raw.githubusercontent.com/kajju027/Fancode-Events-Json/refs/heads/main/fancode.json" },
+            { name: "DRM Live Fancode Events", url: "https://raw.githubusercontent.com/drmlive/fancode-live-events/refs/heads/main/fancode.json" }
         ];
 
-        let allStreams = [];
-        const video = document.getElementById('player');
-        const streamListEl = document.getElementById('stream-list');
-        const searchInput = document.getElementById('search');
+        let loadedData = {}; // key: index, value: array of parsed events
+        let currentView = 'sources'; // 'sources', 'events', 'streams'
+        let selectedSourceIndex = null;
+        let selectedEvent = null;
 
+        const sidebar = document.getElementById('sidebar');
+        const video = document.getElementById('player');
         let hls = null;
         let plyrInstance = new Plyr(video, {
             autoplay: true,
             controls: ['play-large', 'play', 'mute', 'volume', 'settings', 'fullscreen']
         });
 
-        async function fetchAllData() {
-            try {
-                const promises = sources.map(url => fetch(url).then(res => res.json()).catch(() => []));
-                const results = await Promise.all(promises);
-                
-                let parsed = [];
-                results.forEach(data => {
-                    if (Array.isArray(data)) {
-                        parsed = parsed.concat(data);
-                    } else if (data && typeof data === 'object') {
-                        const values = Object.values(data);
-                        values.forEach(val => {
-                            if (Array.isArray(val)) parsed = parsed.concat(val);
-                        });
-                        if (data.matches || data.events || data.data) {
-                            const arr = data.matches || data.events || data.data;
-                            if (Array.isArray(arr)) parsed = parsed.concat(arr);
-                        }
-                    }
-                });
-
-                allStreams = parsed.map(item => ({
-                    title: item.title || item.match_name || item.name || item.event_name || "Live Event",
-                    subtitle: item.tournamnet || item.category || item.time || item.status || "",
-                    url: item.url || item.stream_url || item.m3u8 || item.link || (item.source && item.source[0]) || ""
-                })).filter(s => s.url && s.url.startsWith('http'));
-
-                renderList(allStreams);
-            } catch (e) {
-                streamListEl.innerHTML = `<div style="color:red">Failed to load stream feeds.</div>`;
-            }
+        async function init() {
+            renderSourcesView();
+            // Pre-fetch all sources in background
+            sources.forEach(async (src, idx) => {
+                try {
+                    const res = await fetch(src.url);
+                    const data = await res.json();
+                    loadedData[idx] = parseDataToEvents(data);
+                } catch(e) {
+                    loadedData[idx] = [];
+                }
+            });
         }
 
-        function renderList(streams) {
-            if (streams.length === 0) {
-                streamListEl.innerHTML = `<div>No streams available</div>`;
+        function parseDataToEvents(data) {
+            let parsed = [];
+            if (Array.isArray(data)) {
+                parsed = data;
+            } else if (data && typeof data === 'object') {
+                Object.values(data).forEach(val => {
+                    if (Array.isArray(val)) parsed = parsed.concat(val);
+                });
+                if (data.matches || data.events || data.data) {
+                    const arr = data.matches || data.events || data.data;
+                    if (Array.isArray(arr)) parsed = parsed.concat(arr);
+                }
+            }
+
+            return parsed.map(item => {
+                let streams = [];
+                // Check if item has multiple streaming resolutions or links
+                if (Array.isArray(item.source)) streams = item.source;
+                else if (Array.isArray(item.streams)) streams = item.streams;
+                else if (item.url) streams = [{ name: "Default Stream", url: item.url }];
+                else if (item.stream_url) streams = [{ name: "Default Stream", url: item.stream_url }];
+                else if (item.m3u8) streams = [{ name: "Default Stream", url: item.m3u8 }];
+                else if (item.link) streams = [{ name: "Default Stream", url: item.link }];
+
+                // Normalize stream objects
+                streams = streams.map((st, i) => {
+                    if (typeof st === 'string') return { name: `Stream ${i+1}`, url: st };
+                    return { name: st.name || st.resolution || `Stream ${i+1}`, url: st.url || st.link || st.stream_url || "" };
+                }).filter(st => st.url && st.url.startsWith('http'));
+
+                return {
+                    title: item.title || item.match_name || item.name || item.event_name || "Live Match",
+                    subtitle: item.tournament || item.category || item.time || item.status || "",
+                    streams: streams
+                };
+            }).filter(ev => ev.streams.length > 0);
+        }
+
+        function renderSourcesView() {
+            currentView = 'sources';
+            sidebar.innerHTML = `
+                <div class="section-title">Select Source JSON</div>
+                ${sources.map((src, idx) => `
+                    <div class="card-item" onclick="selectSource(${idx})">
+                        <div class="card-title">${src.name}</div>
+                        <div class="card-subtitle">Click to view events</div>
+                    </div>
+                `).join('')}
+            `;
+        }
+
+        async function selectSource(idx) {
+            selectedSourceIndex = idx;
+            currentView = 'events';
+            
+            sidebar.innerHTML = `
+                <button class="nav-back" onclick="renderSourcesView()">← Back to Sources</button>
+                <div class="card-title" style="font-size: 1.1rem; color: var(--accent-color);">${sources[idx].name}</div>
+                <input type="text" class="search-box" id="search" placeholder="Search events..." oninput="filterEvents(this.value)">
+                <div class="section-title">Events Available</div>
+                <div id="events-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <div class="loading">Loading events...</div>
+                </div>
+            `;
+
+            // Wait if data is still fetching
+            if (!loadedData[idx]) {
+                try {
+                    const res = await fetch(sources[idx].url);
+                    const data = await res.json();
+                    loadedData[idx] = parseDataToEvents(data);
+                } catch(e) {
+                    loadedData[idx] = [];
+                }
+            }
+
+            renderEventsList(loadedData[idx]);
+        }
+
+        function renderEventsList(events) {
+            const listEl = document.getElementById('events-list');
+            if (!listEl) return;
+
+            if (!events || events.length === 0) {
+                listEl.innerHTML = `<div class="loading">No events found in this source.</div>`;
                 return;
             }
 
-            streamListEl.innerHTML = streams.map((stream, idx) => `
-                <div class="stream-item" onclick="playStream('${encodeURIComponent(stream.url)}', this)">
-                    <div class="stream-title">${escapeHtml(stream.title)}</div>
-                    <div class="stream-subtitle">${escapeHtml(stream.subtitle)}</div>
+            listEl.innerHTML = events.map((ev, eventIdx) => `
+                <div class="card-item" onclick="selectEvent(${eventIdx})">
+                    <div class="card-title">${escapeHtml(ev.title)}</div>
+                    <div class="card-subtitle">${escapeHtml(ev.subtitle)} • ${ev.streams.length} streams</div>
                 </div>
             `).join('');
         }
 
-        function playStream(encodedUrl, element) {
-            document.querySelectorAll('.stream-item').forEach(el => el.classList.remove('active'));
-            if (element) element.classList.add('active');
+        function filterEvents(query) {
+            const events = loadedData[selectedSourceIndex] || [];
+            const q = query.toLowerCase();
+            const filtered = events.filter(ev => ev.title.toLowerCase().includes(q) || ev.subtitle.toLowerCase().includes(q));
+            renderEventsList(filtered);
+        }
+
+        function selectEvent(eventIdx) {
+            const events = loadedData[selectedSourceIndex] || [];
+            selectedEvent = events[eventIdx];
+            currentView = 'streams';
+
+            sidebar.innerHTML = `
+                <button class="nav-back" onclick="selectSource(${selectedSourceIndex})">← Back to Events</button>
+                <div class="card-title" style="font-size: 1.1rem; color: var(--accent-color);">${escapeHtml(selectedEvent.title)}</div>
+                <div class="card-subtitle">${escapeHtml(selectedEvent.subtitle)}</div>
+                <div class="section-title" style="margin-top: 1rem;">Available Quality / Streams</div>
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    ${selectedEvent.streams.map((st, streamIdx) => `
+                        <div class="card-item" id="stream-btn-${streamIdx}" onclick="playStream('${encodeURIComponent(st.url)}',${streamIdx})">
+                            <div class="card-title">${escapeHtml(st.name)}</div>
+                            <div class="card-subtitle">Click to play stream</div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+            // Auto-play first stream option by default
+            if (selectedEvent.streams.length > 0) {
+                playStream(encodeURIComponent(selectedEvent.streams[0].url), 0);
+            }
+        }
+
+        function playStream(encodedUrl, streamIdx) {
+            document.querySelectorAll('.sidebar .card-item').forEach(el => el.classList.remove('active'));
+            const btn = document.getElementById(`stream-btn-${streamIdx}`);
+            if (btn) btn.classList.add('active');
 
             const targetUrl = decodeURIComponent(encodedUrl);
             const source = `/?url=${encodeURIComponent(targetUrl)}`;
@@ -200,17 +326,11 @@
             }
         }
 
-        searchInput.addEventListener('input', (e) => {
-            const query = e.target.value.toLowerCase();
-            const filtered = allStreams.filter(s => s.title.toLowerCase().includes(query) || s.subtitle.toLowerCase().includes(query));
-            renderList(filtered);
-        });
-
         function escapeHtml(str) {
-            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+            return String(str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         }
 
-        fetchAllData();
+        init();
     </script>
 </body>
 </html>
