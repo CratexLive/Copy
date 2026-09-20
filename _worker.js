@@ -1,0 +1,69 @@
+export default {
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+    const targetUrl = url.searchParams.get("url");
+
+    if (!targetUrl) {
+      return env.ASSETS ? env.ASSETS.fetch(request) : new Response("Not found", { status: 404 });
+    }
+
+    if (request.method === "OPTIONS") {
+      return new Response(null, {
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+          "Access-Control-Allow-Headers": "*",
+        },
+      });
+    }
+
+    const forwardHeaders = new Headers();
+    forwardHeaders.set("User-Agent", "ReactNativeVideo/9.11.1 (Linux;Android 13) AndroidXMedia3/1.6.1");
+    forwardHeaders.set("Referer", "https://fancode.com/");
+
+    try {
+      const response = await fetch(targetUrl, {
+        method: request.method,
+        headers: forwardHeaders,
+      });
+
+      const contentType = response.headers.get("content-type") || "";
+      const isManifest = contentType.includes("mpegurl") || targetUrl.includes(".m3u8");
+
+      if (isManifest) {
+        const manifestText = await response.text();
+        
+        const rewrittenManifest = manifestText
+          .split("\n")
+          .map((line) => {
+            const trimmed = line.trim();
+            if (trimmed && !trimmed.startsWith("#")) {
+              try {
+                const absoluteUrl = new URL(trimmed, targetUrl).href;
+                return `${url.origin}/?url=${encodeURIComponent(absoluteUrl)}`;
+              } catch (e) {
+                return line;
+              }
+            }
+            return line;
+          })
+          .join("\n");
+
+        return new Response(rewrittenManifest, {
+          status: response.status,
+          headers: {
+            "Content-Type": "application/vnd.apple.mpegurl",
+            "Access-Control-Allow-Origin": "*",
+            "Cache-Control": "no-store",
+          },
+        });
+      }
+
+      const mediaResponse = new Response(response.body, response);
+      mediaResponse.headers.set("Access-Control-Allow-Origin", "*");
+      return mediaResponse;
+    } catch (err) {
+      return new Response(err.message, { status: 500 });
+    }
+  },
+};
