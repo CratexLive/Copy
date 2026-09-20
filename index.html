@@ -4,17 +4,88 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
   <title>matchdekho - Live Sports Streaming, Match Highlights & Scores</title>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="willow-live.css">
   <link rel="stylesheet" href="world-sports.css">
   <link rel="stylesheet" href="fancode.css">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { --bg-primary: #0b0d0f; --green: #7dffb3; --white: #ffffff; --golden: #f5c518; }
+    html { font-size: 16px; scroll-behavior: smooth; }
+    body { width: 100%; min-height: 100vh; background: var(--bg-primary); font-family: 'Inter', sans-serif; color: #fff; overflow-x: hidden; }
+    header { position: fixed; top: 0; left: 0; right: 0; padding: 0.5rem 2rem; display: flex; align-items: center; justify-content: space-between; z-index: 1000; background: rgba(11, 13, 15, 0.8); backdrop-filter: blur(10px); }
+    .logo { text-decoration: none; font-size: 1.3rem; font-weight: 700; }
+    .logo .match { color: var(--green); }
+    .logo .dekho { color: var(--white); }
+    .header-nav { display: flex; align-items: center; gap: 1.5rem; }
+    .header-nav a { color: rgba(255,255,255,0.7); text-decoration: none; font-size: 0.9rem; font-weight: 500; }
+    .header-nav a:hover { color: #fff; }
+    .poster-wrapper { position: relative; width: 100%; height: 100vh; margin-top: 60px; overflow: hidden; }
+    .poster-section { position: absolute; inset: 0; display: flex; align-items: center; opacity: 0; visibility: hidden; transition: opacity 0.7s ease; }
+    .poster-section.active { opacity: 1; visibility: visible; }
+    .poster-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .match-details { position: absolute; bottom: 15%; left: 6%; z-index: 10; max-width: 600px; }
+    .vs-score { font-size: 3rem; font-weight: 800; }
+    .highlights-section, .willow-live-section, .fancode-section, .world-sports-section { padding: 2rem 3rem; }
+    .highlights-track, .willow-live-track, .fancode-track, .world-sports-track { display: flex; gap: 1rem; overflow-x: auto; scroll-behavior: smooth; scrollbar-width: none; }
+    .highlights-track::-webkit-scrollbar, .willow-live-track::-webkit-scrollbar, .fancode-track::-webkit-scrollbar, .world-sports-track::-webkit-scrollbar { display: none; }
+  </style>
 </head>
 <body>
+
   <header>
-    <a href="#" class="logo">matchdekho</a>
+    <a href="#" class="logo"><span class="match">match</span><span class="dekho">dekho</span></a>
+    <nav class="header-nav">
+      <a href="#">Home</a>
+      <a href="#">Sports</a>
+      <a href="#">Football</a>
+      <a href="#">Cricket</a>
+      <a href="#">Sign In</a>
+    </nav>
   </header>
+
+  <div class="poster-wrapper" id="posterWrapper">
+    <section class="poster-section active" data-slide="0">
+      <img src="https://images.slivcdn.com/videoasset_images/manage_file/1000024213/1789823383479539_AG26_womens_SF_india_vs_bangladesh_SP_masthead_large_v3_3200x1800.jpg" alt="poster" class="poster-image">
+      <div class="match-details">
+        <div style="color:var(--green); font-weight:600; margin-bottom:0.5rem;">WOMEN'S ASIAN CUP, 2026</div>
+        <div style="font-size: 2rem; font-weight: 700;">India vs Bangladesh</div>
+      </div>
+    </section>
+  </div>
+
   <main>
-    <h1>Welcome to MatchDekho</h1>
+    <!-- Willow Live Section -->
+    <section class="willow-live-section">
+      <h2>Willow Live</h2>
+      <div class="willow-live-track" id="willowLiveTrack"></div>
+    </section>
+
+    <!-- Highlights Section -->
+    <section class="highlights-section">
+      <h2>Highlights</h2>
+      <div class="highlights-track" id="highlightsTrack">
+        <div style="min-width:280px; background:#14181f; border-radius:8px; padding:10px;">
+          <img src="https://img.youtube.com/vi/vobZJTEqCHo/maxresdefault.jpg" style="width:100%; border-radius:6px;">
+          <div style="margin-top:8px; font-weight:600;">India Vs Zimbabwe</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FanCode Section -->
+    <section class="fancode-section" id="fancodeSection">
+      <h2>FanCode</h2>
+      <div class="fancode-track" id="fancodeTrack"></div>
+    </section>
+
+    <!-- World Sports Section -->
+    <section class="world-sports-section" id="worldSportsSection">
+      <h2>World Sports</h2>
+      <div class="world-sports-track" id="worldSportsTrack"></div>
+    </section>
   </main>
+
   <script src="willow-live.js"></script>
   <script src="fancode.js"></script>
   <script src="world-sports.js"></script>
