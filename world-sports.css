@@ -1,0 +1,39 @@
+.world-sports-section {
+  width: 100%;
+  padding: 20px 30px;
+  background: #0b0d0f;
+  color: #ffffff;
+}
+.world-sports-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+.world-sports-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+.world-sports-badge {
+  background: #7dffb3;
+  color: #0b0d0f;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  border-radius: 4px;
+}
+.world-sports-carousel-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.world-sports-track {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+}
+.world-sports-track::-webkit-scrollbar {
+  display: none;
+}
