@@ -1,93 +1,216 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-  <title>matchdekho - Live Sports Streaming, Match Highlights & Scores</title>
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="willow-live.css">
-  <link rel="stylesheet" href="world-sports.css">
-  <link rel="stylesheet" href="fancode.css">
-  <style>
-    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-    :root { --bg-primary: #0b0d0f; --green: #7dffb3; --white: #ffffff; --golden: #f5c518; }
-    html { font-size: 16px; scroll-behavior: smooth; }
-    body { width: 100%; min-height: 100vh; background: var(--bg-primary); font-family: 'Inter', sans-serif; color: #fff; overflow-x: hidden; }
-    header { position: fixed; top: 0; left: 0; right: 0; padding: 0.5rem 2rem; display: flex; align-items: center; justify-content: space-between; z-index: 1000; background: rgba(11, 13, 15, 0.8); backdrop-filter: blur(10px); }
-    .logo { text-decoration: none; font-size: 1.3rem; font-weight: 700; }
-    .logo .match { color: var(--green); }
-    .logo .dekho { color: var(--white); }
-    .header-nav { display: flex; align-items: center; gap: 1.5rem; }
-    .header-nav a { color: rgba(255,255,255,0.7); text-decoration: none; font-size: 0.9rem; font-weight: 500; }
-    .header-nav a:hover { color: #fff; }
-    .poster-wrapper { position: relative; width: 100%; height: 100vh; margin-top: 60px; overflow: hidden; }
-    .poster-section { position: absolute; inset: 0; display: flex; align-items: center; opacity: 0; visibility: hidden; transition: opacity 0.7s ease; }
-    .poster-section.active { opacity: 1; visibility: visible; }
-    .poster-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-    .match-details { position: absolute; bottom: 15%; left: 6%; z-index: 10; max-width: 600px; }
-    .vs-score { font-size: 3rem; font-weight: 800; }
-    .highlights-section, .willow-live-section, .fancode-section, .world-sports-section { padding: 2rem 3rem; }
-    .highlights-track, .willow-live-track, .fancode-track, .world-sports-track { display: flex; gap: 1rem; overflow-x: auto; scroll-behavior: smooth; scrollbar-width: none; }
-    .highlights-track::-webkit-scrollbar, .willow-live-track::-webkit-scrollbar, .fancode-track::-webkit-scrollbar, .world-sports-track::-webkit-scrollbar { display: none; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Streams</title>
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent-color: #38bdf8;
+            --text-color: #f8fafc;
+            --text-secondary: #94a3b8;
+        }
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        header {
+            padding: 1rem 2rem;
+            background-color: var(--card-bg);
+            border-bottom: 1px solid #334155;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        h1 { margin: 0; font-size: 1.25rem; color: var(--accent-color); }
+        .container {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            flex: 1;
+            overflow: hidden;
+        }
+        @media(max-width: 900px) {
+            .container { grid-template-columns: 1fr; display: flex; flex-direction: column-reverse; }
+        }
+        .sidebar {
+            background-color: var(--card-bg);
+            border-right: 1px solid #334155;
+            overflow-y: auto;
+            max-height: calc(100vh - 65px);
+            padding: 1rem;
+        }
+        .player-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1.5rem;
+            background: #000;
+            flex: 1;
+        }
+        .player-wrapper {
+            width: 100%;
+            max-width: 900px;
+        }
+        video { width: 100%; max-height: 70vh; }
+        .stream-item {
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .stream-item:hover { border-color: var(--accent-color); }
+        .stream-item.active { border-color: var(--accent-color); background: #1e3a8a; }
+        .stream-title { font-weight: 600; font-size: 0.95rem; }
+        .stream-subtitle { font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px; }
+        .search-box {
+            width: 100%;
+            padding: 0.6rem 1rem;
+            margin-bottom: 1rem;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            color: white;
+            box-sizing: border-box;
+        }
+        .search-box:focus { outline: none; border-color: var(--accent-color); }
+    </style>
 </head>
 <body>
-
-  <header>
-    <a href="#" class="logo"><span class="match">match</span><span class="dekho">dekho</span></a>
-    <nav class="header-nav">
-      <a href="#">Home</a>
-      <a href="#">Sports</a>
-      <a href="#">Football</a>
-      <a href="#">Cricket</a>
-      <a href="#">Sign In</a>
-    </nav>
-  </header>
-
-  <div class="poster-wrapper" id="posterWrapper">
-    <section class="poster-section active" data-slide="0">
-      <img src="https://images.slivcdn.com/videoasset_images/manage_file/1000024213/1789823383479539_AG26_womens_SF_india_vs_bangladesh_SP_masthead_large_v3_3200x1800.jpg" alt="poster" class="poster-image">
-      <div class="match-details">
-        <div style="color:var(--green); font-weight:600; margin-bottom:0.5rem;">WOMEN'S ASIAN CUP, 2026</div>
-        <div style="font-size: 2rem; font-weight: 700;">India vs Bangladesh</div>
-      </div>
-    </section>
-  </div>
-
-  <main>
-    <!-- Willow Live Section -->
-    <section class="willow-live-section">
-      <h2>Willow Live</h2>
-      <div class="willow-live-track" id="willowLiveTrack"></div>
-    </section>
-
-    <!-- Highlights Section -->
-    <section class="highlights-section">
-      <h2>Highlights</h2>
-      <div class="highlights-track" id="highlightsTrack">
-        <div style="min-width:280px; background:#14181f; border-radius:8px; padding:10px;">
-          <img src="https://img.youtube.com/vi/vobZJTEqCHo/maxresdefault.jpg" style="width:100%; border-radius:6px;">
-          <div style="margin-top:8px; font-weight:600;">India Vs Zimbabwe</div>
+    <header>
+        <h1>Live Streams Dashboard</h1>
+    </header>
+    <div class="container">
+        <div class="sidebar">
+            <input type="text" class="search-box" id="search" placeholder="Search streams...">
+            <div id="stream-list">Loading feeds...</div>
         </div>
-      </div>
-    </section>
+        <div class="player-container">
+            <div class="player-wrapper">
+                <video id="player" controls crossorigin playsinline muted></video>
+            </div>
+        </div>
+    </div>
 
-    <!-- FanCode Section -->
-    <section class="fancode-section" id="fancodeSection">
-      <h2>FanCode</h2>
-      <div class="fancode-track" id="fancodeTrack"></div>
-    </section>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.15"></script>
+    <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
+    <script>
+        const sources = [
+            "https://raw.githubusercontent.com/doctor-8trange/zyphx8/refs/heads/main/data/fancode.json",
+            "https://raw.githubusercontent.com/kajju027/Fancode-Events-Json/main/fan.json",
+            "https://raw.githubusercontent.com/kajju027/Fancode-Events-Json/refs/heads/main/fancode.json",
+            "https://raw.githubusercontent.com/drmlive/fancode-live-events/refs/heads/main/fancode.json"
+        ];
 
-    <!-- World Sports Section -->
-    <section class="world-sports-section" id="worldSportsSection">
-      <h2>World Sports</h2>
-      <div class="world-sports-track" id="worldSportsTrack"></div>
-    </section>
-  </main>
+        let allStreams = [];
+        const video = document.getElementById('player');
+        const streamListEl = document.getElementById('stream-list');
+        const searchInput = document.getElementById('search');
 
-  <script src="willow-live.js"></script>
-  <script src="fancode.js"></script>
-  <script src="world-sports.js"></script>
+        let hls = null;
+        let plyrInstance = new Plyr(video, {
+            autoplay: true,
+            controls: ['play-large', 'play', 'mute', 'volume', 'settings', 'fullscreen']
+        });
+
+        async function fetchAllData() {
+            try {
+                const promises = sources.map(url => fetch(url).then(res => res.json()).catch(() => []));
+                const results = await Promise.all(promises);
+                
+                let parsed = [];
+                results.forEach(data => {
+                    if (Array.isArray(data)) {
+                        parsed = parsed.concat(data);
+                    } else if (data && typeof data === 'object') {
+                        const values = Object.values(data);
+                        values.forEach(val => {
+                            if (Array.isArray(val)) parsed = parsed.concat(val);
+                        });
+                        if (data.matches || data.events || data.data) {
+                            const arr = data.matches || data.events || data.data;
+                            if (Array.isArray(arr)) parsed = parsed.concat(arr);
+                        }
+                    }
+                });
+
+                allStreams = parsed.map(item => ({
+                    title: item.title || item.match_name || item.name || item.event_name || "Live Event",
+                    subtitle: item.tournamnet || item.category || item.time || item.status || "",
+                    url: item.url || item.stream_url || item.m3u8 || item.link || (item.source && item.source[0]) || ""
+                })).filter(s => s.url && s.url.startsWith('http'));
+
+                renderList(allStreams);
+            } catch (e) {
+                streamListEl.innerHTML = `<div style="color:red">Failed to load stream feeds.</div>`;
+            }
+        }
+
+        function renderList(streams) {
+            if (streams.length === 0) {
+                streamListEl.innerHTML = `<div>No streams available</div>`;
+                return;
+            }
+
+            streamListEl.innerHTML = streams.map((stream, idx) => `
+                <div class="stream-item" onclick="playStream('${encodeURIComponent(stream.url)}', this)">
+                    <div class="stream-title">${escapeHtml(stream.title)}</div>
+                    <div class="stream-subtitle">${escapeHtml(stream.subtitle)}</div>
+                </div>
+            `).join('');
+        }
+
+        function playStream(encodedUrl, element) {
+            document.querySelectorAll('.stream-item').forEach(el => el.classList.remove('active'));
+            if (element) element.classList.add('active');
+
+            const targetUrl = decodeURIComponent(encodedUrl);
+            const source = `/?url=${encodeURIComponent(targetUrl)}`;
+
+            if (hls) {
+                hls.destroy();
+            }
+
+            if (Hls.isSupported()) {
+                hls = new Hls({
+                    enableWorker: true,
+                    lowLatencyMode: true,
+                    backBufferLength: 30
+                });
+                hls.loadSource(source);
+                hls.attachMedia(video);
+                hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                    plyrInstance.play();
+                });
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = source;
+                video.addEventListener('loadedmetadata', () => {
+                    plyrInstance.play();
+                });
+            }
+        }
+
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            const filtered = allStreams.filter(s => s.title.toLowerCase().includes(query) || s.subtitle.toLowerCase().includes(query));
+            renderList(filtered);
+        });
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        fetchAllData();
+    </script>
 </body>
 </html>
